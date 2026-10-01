@@ -8,6 +8,7 @@ require('common');
 local settings = require('settings');
 local chat     = require('chat');
 local imgui    = require('imgui');
+local ui       = require('phxui');
 
 --[[
     These values have no dedicated Ashita memory API - they only arrive over
@@ -53,45 +54,77 @@ local function get_own_nation()
     return nil;
 end
 
-local function draw_row(label, value)
-    imgui.Text(label);
-    imgui.SameLine(180);
-    imgui.Text(tostring(value));
+local function format_number(value)
+    local text = tostring(math.floor(tonumber(value) or 0));
+    while true do
+        local replaced, count = text:gsub('^(-?%d+)(%d%d%d)', '%1,%2');
+        text = replaced;
+        if (count == 0) then
+            return text;
+        end
+    end
+end
+
+local function draw_rows(id, rows)
+    if (imgui.BeginTable('##cur_' .. id, 2, ImGuiTableFlags_SizingStretchProp)) then
+        imgui.TableSetupColumn('Name', ImGuiTableColumnFlags_WidthStretch, 1.0);
+        imgui.TableSetupColumn('Value', ImGuiTableColumnFlags_WidthFixed, 70);
+        for _, row in ipairs(rows) do
+            imgui.TableNextRow();
+            imgui.TableNextColumn();
+            imgui.TextColored(row.home and ui.color.peach or ui.color.secondary, row.label);
+            if (row.home) then
+                imgui.SameLine();
+                imgui.TextColored(ui.color.muted, 'home');
+            end
+            imgui.TableNextColumn();
+            local value = tonumber(row.value) or 0;
+            imgui.TextColored(value > 0 and ui.color.text or ui.color.faint, format_number(value));
+        end
+        imgui.EndTable();
+    end
+end
+
+local function draw_body()
+    local s = currencytracker.settings;
+    if (not s.received) then
+        imgui.TextColored(ui.color.faint, 'No data yet. Open the in-game Currency menu once to fill this in.');
+        return;
+    end
+
+    local own_nation = get_own_nation();
+    local cp_values = { s.cp_sandoria, s.cp_bastok, s.cp_windurst };
+    local cp_rows = {};
+    for nation_id = 0, 2 do
+        cp_rows[#cp_rows + 1] = { label = NATION_NAMES[nation_id], value = cp_values[nation_id + 1], home = (nation_id == own_nation) };
+    end
+    ui.section('Conquest points');
+    draw_rows('cp', cp_rows);
+
+    ui.section('Other currencies');
+    draw_rows('other', {
+        { label = 'Allied Notes', value = s.allied_notes },
+        { label = 'Beastmen Seals', value = s.beastmen_seals },
+        { label = 'Kindred Seals', value = s.kindred_seals },
+        { label = 'Kindred Crests', value = s.kindred_crests },
+        { label = 'High Kindred Crests', value = s.high_kindred_crests },
+        { label = 'Sacred Kindred Crests', value = s.sacred_kindred_crests },
+    });
 end
 
 local function render_window()
     imgui.SetNextWindowSize({ 260, 0 }, ImGuiCond_FirstUseEver);
 
     local is_open = { currencytracker.settings.visible };
-    if (imgui.Begin('Currency Tracker', is_open, ImGuiWindowFlags_AlwaysAutoResize)) then
-        if (not currencytracker.settings.received) then
-            imgui.TextWrapped('No data yet - open the in-game Currency menu once to populate this.');
-        else
-            local own_nation = get_own_nation();
-            local cp_values = { currencytracker.settings.cp_sandoria, currencytracker.settings.cp_bastok, currencytracker.settings.cp_windurst };
-
-            imgui.Text('Conquest Points');
-            imgui.Separator();
-            for nation_id = 0, 2 do
-                local label = NATION_NAMES[nation_id];
-                if (nation_id == own_nation) then
-                    label = label .. ' (home)';
-                end
-                draw_row(label, cp_values[nation_id + 1]);
-            end
-
-            imgui.Spacing();
-            imgui.Text('Other Currencies');
-            imgui.Separator();
-            draw_row('Allied Notes', currencytracker.settings.allied_notes);
-            draw_row('Beastmen Seals', currencytracker.settings.beastmen_seals);
-            draw_row('Kindred Seals', currencytracker.settings.kindred_seals);
-            draw_row('Kindred Crests', currencytracker.settings.kindred_crests);
-            draw_row('High Kindred Crests', currencytracker.settings.high_kindred_crests);
-            draw_row('Sacred Kindred Crests', currencytracker.settings.sacred_kindred_crests);
+    local token = ui.push();
+    if (imgui.Begin('Currency Tracker', is_open, bit.bor(ImGuiWindowFlags_AlwaysAutoResize, ImGuiWindowFlags_NoCollapse))) then
+        local ok, err = pcall(draw_body);
+        if (not ok) then
+            imgui.TextColored(ui.color.bad, 'Error: ' .. tostring(err));
         end
     end
     imgui.End();
+    ui.pop(token);
 
     if (is_open[1] ~= currencytracker.settings.visible) then
         currencytracker.settings.visible = is_open[1];

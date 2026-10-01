@@ -8,6 +8,7 @@ require('common');
 local settings = require('settings');
 local chat     = require('chat');
 local imgui    = require('imgui');
+local ui       = require('phxui');
 
 -- Ashita combat-skill index -> display name. Index 0 and the two unused
 -- gaps (13-21, 46-47) are intentionally absent. Crafts use a separate
@@ -140,42 +141,54 @@ local function update_combat_state()
     end
 end
 
-local function draw_row(row)
-    imgui.Text(row.name);
-    imgui.SameLine(140);
-    imgui.Text(tostring(row.value) .. (row.capped and ' (MAX)' or ''));
+local function draw_section(id, label, rows)
+    if (#rows == 0) then
+        return;
+    end
+    ui.section(label);
+    if (imgui.BeginTable('##skt_' .. id, 2, ImGuiTableFlags_SizingStretchProp)) then
+        imgui.TableSetupColumn('Skill', ImGuiTableColumnFlags_WidthStretch, 1.0);
+        imgui.TableSetupColumn('Level', ImGuiTableColumnFlags_WidthFixed, 56);
+        for _, row in ipairs(rows) do
+            imgui.TableNextRow();
+            imgui.TableNextColumn();
+            imgui.TextColored(ui.color.secondary, row.name);
+            imgui.TableNextColumn();
+            if (row.capped) then
+                imgui.TextColored(ui.color.ok, tostring(row.value));
+                imgui.SameLine();
+                imgui.TextColored(ui.color.muted, 'MAX');
+            else
+                imgui.TextColored(ui.color.text, tostring(row.value));
+            end
+        end
+        imgui.EndTable();
+    end
+end
+
+local function draw_body()
+    if (#skilltracker.melee_rows == 0 and #skilltracker.defense_rows == 0 and #skilltracker.magic_rows == 0) then
+        imgui.TextColored(ui.color.faint, 'No trained skills detected.');
+        return;
+    end
+    draw_section('melee', 'Combat', skilltracker.melee_rows);
+    draw_section('defense', 'Defense', skilltracker.defense_rows);
+    draw_section('magic', 'Magic', skilltracker.magic_rows);
 end
 
 local function render_window()
     imgui.SetNextWindowSize({ 240, 0 }, ImGuiCond_FirstUseEver);
 
     local is_open = { skilltracker.settings.visible };
-    if (imgui.Begin('Skill Tracker', is_open, ImGuiWindowFlags_AlwaysAutoResize)) then
-        if (#skilltracker.melee_rows == 0 and #skilltracker.defense_rows == 0 and #skilltracker.magic_rows == 0) then
-            imgui.Text('No trained skills detected.');
-        end
-
-        for _, row in ipairs(skilltracker.melee_rows) do
-            draw_row(row);
-        end
-
-        if (#skilltracker.melee_rows > 0 and #skilltracker.defense_rows > 0) then
-            imgui.Separator();
-        end
-
-        for _, row in ipairs(skilltracker.defense_rows) do
-            draw_row(row);
-        end
-
-        if ((#skilltracker.melee_rows > 0 or #skilltracker.defense_rows > 0) and #skilltracker.magic_rows > 0) then
-            imgui.Separator();
-        end
-
-        for _, row in ipairs(skilltracker.magic_rows) do
-            draw_row(row);
+    local token = ui.push();
+    if (imgui.Begin('Skill Tracker', is_open, bit.bor(ImGuiWindowFlags_AlwaysAutoResize, ImGuiWindowFlags_NoCollapse))) then
+        local ok, err = pcall(draw_body);
+        if (not ok) then
+            imgui.TextColored(ui.color.bad, 'Error: ' .. tostring(err));
         end
     end
     imgui.End();
+    ui.pop(token);
 
     if (is_open[1] ~= skilltracker.settings.visible) then
         skilltracker.settings.visible = is_open[1];
