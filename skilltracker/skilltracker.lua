@@ -1,6 +1,6 @@
 addon.name    = 'skilltracker';
 addon.author  = 'Spongeh';
-addon.version = '1.0.0';
+addon.version = '1.1.0';
 addon.desc    = 'Shows your currently relevant combat/magic skill levels in a small draggable window.';
 addon.link    = '';
 
@@ -31,6 +31,7 @@ local MAGIC_IDS = T{ 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45 };
 local ENTITY_STATUS_ENGAGED = 1;
 
 local default_settings = T{
+    theme = 'Phoenix',  -- window theme (phxui); right-click the window or /skilltracker theme <name>
     visible        = true,
     hide_in_combat = true,
 };
@@ -186,6 +187,10 @@ local function render_window()
         if (not ok) then
             imgui.TextColored(ui.color.bad, 'Error: ' .. tostring(err));
         end
+        if (ui.themeMenu(skilltracker.settings.theme)) then
+            skilltracker.settings.theme = ui.theme;
+            settings.save();
+        end
     end
     imgui.End();
     ui.pop(token);
@@ -200,9 +205,11 @@ local function print_help()
     print(chat.header(addon.name):append(chat.message('Commands:')));
     print(chat.header(addon.name):append(chat.message('/skilltracker on|off|toggle - show/hide the window')));
     print(chat.header(addon.name):append(chat.message('/skilltracker combat <on|off> - hide the window while engaged')));
+    print(chat.header(addon.name):append(chat.message('/skilltracker theme <name> - window theme: ' .. table.concat(ui.THEMES, ', ') .. ' (or right-click the window)')));
 end
 
 ashita.events.register('load', 'load_cb', function ()
+    ui.setTheme(skilltracker.settings.theme);
     print(chat.header(addon.name):append(chat.message(('v%s loaded. Use /skilltracker help for commands.'):format(addon.version))));
 end);
 
@@ -238,7 +245,16 @@ ashita.events.register('command', 'command_cb', function (e)
 
     local sub = args[2] and args[2]:lower() or 'help';
 
-    if (sub == 'on') then
+    if (sub == 'theme') then
+        local name = ui.findTheme(args[3]);
+        if (name == nil) then
+            print(chat.header(addon.name):append(chat.message('Themes: ' .. table.concat(ui.THEMES, ', ') .. '. Use /skilltracker theme <name>, or right-click the window.')));
+        else
+            skilltracker.settings.theme = ui.setTheme(name);
+            settings.save();
+            print(chat.header(addon.name):append(chat.message('Theme: ' .. name)));
+        end
+    elseif (sub == 'on') then
         skilltracker.settings.visible = true;
         settings.save();
     elseif (sub == 'off') then
@@ -259,6 +275,7 @@ end);
 settings.register('settings', 'settings_update', function (s)
     if (s ~= nil) then
         skilltracker.settings = s;
+        ui.setTheme(skilltracker.settings.theme);
     end
     settings.save();
 end);

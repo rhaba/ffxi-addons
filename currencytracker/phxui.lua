@@ -15,8 +15,10 @@
     Helpers (call inside a window): ui.section, ui.stat, ui.toggle, ui.rightText, ui.labelValue,
     ui.tooltip, ui.textWidth.
 
-    Themes: ui.THEMES lists them (Phoenix, Umbrella, Midnight, Classic). ui.setTheme(name) switches
-    (call it once at load with the saved choice); ui.themeCombo(label, current) draws a picker.
+    Themes: ui.THEMES lists them (Phoenix, Farplane, Umbrella, Midnight, Classic). ui.setTheme(name)
+    switches (call it once at load with the saved choice). ui.themeCombo(label, current) draws a
+    picker; ui.themeMenu(current) adds a right-click menu to the current window for addons
+    without a settings window.
 ]]
 
 local imgui = require('imgui');
@@ -87,6 +89,14 @@ local PALETTES = {
         royal = '4f7fd1', tint = { '4f7fd1', 0.30 }, hover = '5f90e2', ember = 'ffa36b',
         danger = 'e05050', gold = 'd0ac3c', success = '5fc38f',
     },
+    -- Final Fantasy X's Farplane: twilight water and sky, pyrefly cyan and lavender, the
+    -- sunset-orange flowers.
+    Farplane = {
+        abyss = '0a0f1f', surface1 = '121a33', surface2 = '18234a', border = { 'bcd4ff', 0.22 }, subtle = { 'bcd4ff', 0.12 },
+        text = 'f3f6ff', secondary = 'dbe4ff', peach = 'b9e6ff', muted = '7484ad', faint = '48547a',
+        royal = '4fa7c4', tint = { '7fd3ec', 0.25 }, hover = '6cc3de', ember = 'ffae6b',
+        danger = 'ff6b8b', gold = 'f2d27a', success = '7fe0b8',
+    },
     Classic = {
         abyss = '0f0f0f', surface1 = '1f1f1f', surface2 = '2a2a2a', border = { 'ffffff', 0.15 }, subtle = { 'ffffff', 0.08 },
         text = 'ffffff', secondary = 'e6e6e6', peach = 'b4c8e6', muted = '8c8c8c', faint = '5c5c5c',
@@ -95,7 +105,7 @@ local PALETTES = {
     },
 };
 
-ui.THEMES = { 'Phoenix', 'Umbrella', 'Midnight', 'Classic' };
+ui.THEMES = { 'Phoenix', 'Farplane', 'Umbrella', 'Midnight', 'Classic' };
 ui.theme = 'Phoenix';
 
 function ui.setTheme(name)
@@ -283,6 +293,30 @@ function ui.themeCombo(label, current)
     end
     if picked then ui.setTheme(picked); end
     return picked;
+end
+
+-- Right-click anywhere in the current window for a Theme menu. Call between Begin and End.
+-- Applies the pick and returns the new name, or nil.
+function ui.themeMenu(current)
+    local picked = nil;
+    if imgui.BeginPopupContextWindow() then
+        imgui.TextColored(ui.color.muted, 'THEME');
+        for _, name in ipairs(ui.THEMES) do
+            if imgui.MenuItem(name, nil, name == (current or ui.theme)) then picked = name; end
+        end
+        imgui.EndPopup();
+    end
+    if picked then ui.setTheme(picked); end
+    return picked;
+end
+
+-- Parse a theme name typed in a command (any case). Returns the proper name or nil.
+function ui.findTheme(text)
+    text = tostring(text or ''):lower();
+    for _, name in ipairs(ui.THEMES) do
+        if name:lower() == text then return name; end
+    end
+    return nil;
 end
 
 return ui;

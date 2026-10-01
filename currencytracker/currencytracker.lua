@@ -1,6 +1,6 @@
 addon.name    = 'currencytracker';
 addon.author  = 'Spongeh';
-addon.version = '1.0.0';
+addon.version = '1.1.0';
 addon.desc    = 'Shows Conquest Points, Allied Notes, Beastmen Seals, and Kindred Seals/Crests in a small draggable window.';
 addon.link    = '';
 
@@ -27,6 +27,7 @@ local ui       = require('phxui');
 local NATION_NAMES = { [0] = "San d'Oria", [1] = 'Bastok', [2] = 'Windurst' };
 
 local default_settings = T{
+    theme = 'Phoenix',  -- window theme (phxui); right-click the window or /currencytracker theme <name>
     visible                = true,
     received               = false,
     cp_sandoria            = 0,
@@ -122,6 +123,10 @@ local function render_window()
         if (not ok) then
             imgui.TextColored(ui.color.bad, 'Error: ' .. tostring(err));
         end
+        if (ui.themeMenu(currencytracker.settings.theme)) then
+            currencytracker.settings.theme = ui.theme;
+            settings.save();
+        end
     end
     imgui.End();
     ui.pop(token);
@@ -135,9 +140,11 @@ end
 local function print_help()
     print(chat.header(addon.name):append(chat.message('Commands:')));
     print(chat.header(addon.name):append(chat.message('/currencytracker on|off|toggle - show/hide the window')));
+    print(chat.header(addon.name):append(chat.message('/currencytracker theme <name> - window theme: ' .. table.concat(ui.THEMES, ', ') .. ' (or right-click the window)')));
 end
 
 ashita.events.register('load', 'load_cb', function ()
+    ui.setTheme(currencytracker.settings.theme);
     print(chat.header(addon.name):append(chat.message(('v%s loaded. Use /currencytracker help for commands.'):format(addon.version))));
 end);
 
@@ -184,7 +191,16 @@ ashita.events.register('command', 'command_cb', function (e)
 
     local sub = args[2] and args[2]:lower() or 'help';
 
-    if (sub == 'on') then
+    if (sub == 'theme') then
+        local name = ui.findTheme(args[3]);
+        if (name == nil) then
+            print(chat.header(addon.name):append(chat.message('Themes: ' .. table.concat(ui.THEMES, ', ') .. '. Use /currencytracker theme <name>, or right-click the window.')));
+        else
+            currencytracker.settings.theme = ui.setTheme(name);
+            settings.save();
+            print(chat.header(addon.name):append(chat.message('Theme: ' .. name)));
+        end
+    elseif (sub == 'on') then
         currencytracker.settings.visible = true;
         settings.save();
     elseif (sub == 'off') then
@@ -201,6 +217,7 @@ end);
 settings.register('settings', 'settings_update', function (s)
     if (s ~= nil) then
         currencytracker.settings = s;
+        ui.setTheme(currencytracker.settings.theme);
     end
     settings.save();
 end);
