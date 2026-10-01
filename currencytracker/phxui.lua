@@ -14,6 +14,9 @@
 
     Helpers (call inside a window): ui.section, ui.stat, ui.toggle, ui.rightText, ui.labelValue,
     ui.tooltip, ui.textWidth.
+
+    Themes: ui.THEMES lists them (Phoenix, Umbrella, Midnight, Classic). ui.setTheme(name) switches
+    (call it once at load with the saved choice); ui.themeCombo(label, current) draws a picker.
 ]]
 
 local imgui = require('imgui');
@@ -59,6 +62,55 @@ ui.color.bad    = ui.color.danger;
 ui.color.info   = ui.color.peach;
 ui.color.dim    = ui.color.muted;
 ui.color.accent = ui.color.royal;
+
+-- ---------------------------------------------------------------------------
+-- Themes. Each is a full palette (hex, optional alpha). ui.setTheme copies the chosen one into
+-- ui.color in place, so colors an addon captured at load time (local GOOD = ui.color.ok) follow.
+-- 'Classic' keeps ImGui's stock window style and only supplies text colors.
+-- ---------------------------------------------------------------------------
+local PALETTES = {
+    Phoenix = {
+        abyss = '180e0e', surface1 = '291c1c', surface2 = '321f1f', border = { 'd2abab', 0.20 }, subtle = { 'd2abab', 0.12 },
+        text = 'fff8f8', secondary = 'eae1e1', peach = 'd2abab', muted = '8a6b6b', faint = '5a4545',
+        royal = 'c55151', tint = { 'c55151', 0.30 }, hover = 'd45e5e', ember = 'ff8d79',
+        danger = 'e04040', gold = 'c5a131', success = '63ba8a',
+    },
+    Umbrella = {
+        abyss = '0b120d', surface1 = '132018', surface2 = '1a2a20', border = { '9fd7a8', 0.20 }, subtle = { '9fd7a8', 0.12 },
+        text = 'f2fff4', secondary = 'dcebdf', peach = 'a8d9b0', muted = '688a70', faint = '43584a',
+        royal = '3f9e58', tint = { '3f9e58', 0.30 }, hover = '4fb86a', ember = 'f2c14e',
+        danger = 'e04040', gold = 'd4b23c', success = '6fd98c',
+    },
+    Midnight = {
+        abyss = '0e1218', surface1 = '182030', surface2 = '1f2a3b', border = { 'abc0d2', 0.20 }, subtle = { 'abc0d2', 0.12 },
+        text = 'f6f9ff', secondary = 'dfe6ef', peach = 'a9c3de', muted = '6a7a90', faint = '475365',
+        royal = '4f7fd1', tint = { '4f7fd1', 0.30 }, hover = '5f90e2', ember = 'ffa36b',
+        danger = 'e05050', gold = 'd0ac3c', success = '5fc38f',
+    },
+    Classic = {
+        abyss = '0f0f0f', surface1 = '1f1f1f', surface2 = '2a2a2a', border = { 'ffffff', 0.15 }, subtle = { 'ffffff', 0.08 },
+        text = 'ffffff', secondary = 'e6e6e6', peach = 'b4c8e6', muted = '8c8c8c', faint = '5c5c5c',
+        royal = '4296fa', tint = { '4296fa', 0.30 }, hover = '5aa5ff', ember = 'ffa54f',
+        danger = 'ff5a5a', gold = 'e6c84f', success = '6ccf7f',
+    },
+};
+
+ui.THEMES = { 'Phoenix', 'Umbrella', 'Midnight', 'Classic' };
+ui.theme = 'Phoenix';
+
+function ui.setTheme(name)
+    local p = PALETTES[name];
+    if p == nil then name, p = 'Phoenix', PALETTES.Phoenix; end
+    for key, value in pairs(p) do
+        local hex, alpha = value, nil;
+        if type(value) == 'table' then hex, alpha = value[1], value[2]; end
+        local c = rgb(hex, alpha);
+        local dst = ui.color[key];
+        dst[1], dst[2], dst[3], dst[4] = c[1], c[2], c[3], c[4];
+    end
+    ui.theme = name;
+    return name;
+end
 
 ui.PADDING = 12;
 
@@ -127,6 +179,7 @@ local styleVars = {
 -- Push the theme. Returns a token for ui.pop. alpha is the window background opacity.
 function ui.push(alpha)
     local token = { colors = 0, vars = 0 };
+    if ui.theme == 'Classic' then return token; end
     for _, entry in ipairs(styleColors(alpha or 0.94)) do
         if entry[1] ~= nil then
             imgui.PushStyleColor(entry[1], entry[2]);
@@ -217,6 +270,19 @@ end
 
 function ui.tooltip(text)
     if imgui.IsItemHovered() then imgui.SetTooltip(text); end
+end
+
+-- A combo listing the themes. Applies the pick and returns the new name, or nil if unchanged.
+function ui.themeCombo(label, current)
+    local picked = nil;
+    if imgui.BeginCombo(label, current or ui.theme) then
+        for _, name in ipairs(ui.THEMES) do
+            if imgui.Selectable(name, name == (current or ui.theme)) then picked = name; end
+        end
+        imgui.EndCombo();
+    end
+    if picked then ui.setTheme(picked); end
+    return picked;
 end
 
 return ui;
