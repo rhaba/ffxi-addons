@@ -89,13 +89,13 @@ local PALETTES = {
         royal = '4f7fd1', tint = { '4f7fd1', 0.30 }, hover = '5f90e2', ember = 'ffa36b',
         danger = 'e05050', gold = 'd0ac3c', success = '5fc38f',
     },
-    -- Final Fantasy X's Farplane: twilight water and sky, pyrefly cyan and lavender, the
-    -- sunset-orange flowers.
+    -- Final Fantasy X's Farplane: smoky charcoal sky, fields of burning amber and orange
+    -- flowers, misty teal water, pale stone pillars and the cold blue orb at its heart.
     Farplane = {
-        abyss = '0a0f1f', surface1 = '121a33', surface2 = '18234a', border = { 'bcd4ff', 0.22 }, subtle = { 'bcd4ff', 0.12 },
-        text = 'f3f6ff', secondary = 'dbe4ff', peach = 'b9e6ff', muted = '7484ad', faint = '48547a',
-        royal = '4fa7c4', tint = { '7fd3ec', 0.25 }, hover = '6cc3de', ember = 'ffae6b',
-        danger = 'ff6b8b', gold = 'f2d27a', success = '7fe0b8',
+        abyss = '141317', surface1 = '1f2024', surface2 = '2b2e34', border = { 'cfdcd8', 0.22 }, subtle = { 'cfdcd8', 0.12 },
+        text = 'fff4e8', secondary = 'eadfd2', peach = 'a8d8f0', muted = '8d7a72', faint = '574a47',
+        royal = 'd2642a', tint = { 'f08a3c', 0.28 }, hover = 'e8783a', ember = 'ffb347',
+        danger = 'e5482f', gold = 'f2c45a', success = '7cc9b6',
     },
     Classic = {
         abyss = '0f0f0f', surface1 = '1f1f1f', surface2 = '2a2a2a', border = { 'ffffff', 0.15 }, subtle = { 'ffffff', 0.08 },
