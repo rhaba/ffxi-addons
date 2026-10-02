@@ -1,5 +1,17 @@
 # presence
 
+<!-- staff-approval -->
+## Approval by staff
+
+| Version | Status | Submitted | Reviewed by | Notes |
+|---|---|---|---|---|
+| 2.0.0 | Pending review | 2026-10-02 | | Display only, sends nothing to the game server. Updates your local Discord status. |
+
+**Author:** Spongeh. **Program:** Ashita v4. **Type:** Discord Rich Presence. It shows your job and zone as your Discord "Playing ..." status, and never sends anything to the game server.
+<!-- /staff-approval -->
+
+---
+
 Ashita v4 addon that shows your FFXI job and zone as your **Discord Rich
 Presence** status - the "Playing ..." line that appears under your name in
 Discord. It does not post any messages to any channel; it only updates your
@@ -94,3 +106,55 @@ so it recovers on its own once Discord is available.
 - If you run multiple FFXI characters at once, each Ashita instance connects
   to Discord independently; only the most recently updated one will be
   visible, since Discord shows one Rich Presence per application per user.
+
+<!-- for-reviewers -->
+## For reviewers
+
+### What it reads
+
+- **No packets** of any kind.
+- **Client memory, through Ashita's API:**
+  - **your own party slot (index 0):** whether you're logged in, your name and your zone. The
+    name is used only to detect login, logout and character changes, and is never sent anywhere;
+  - **your own player data:** main and sub job and their levels;
+  - **zone names** from the client's resource data.
+
+It checks these at most once every 2 seconds.
+
+### What it writes
+
+- **Its own settings file,** through Ashita's settings library: your Discord application id, the
+  on/off switches and the optional icon key.
+- **Your local Discord client,** over Discord's local IPC named pipe (`\\.\pipe\discord-ipc-N`),
+  the same mechanism games use for Rich Presence. It sends the handshake and a `SET_ACTIVITY`
+  with:
+  - your main/sub job and levels (if enabled);
+  - your zone name (if enabled);
+  - a session start time;
+  - the optional icon.
+
+  On logout or unload it clears the activity. This is local to your PC. It isn't a network
+  request from the addon, and it posts no messages to any Discord channel.
+
+### What it does NOT do
+
+- **No game traffic:** no outgoing or incoming game packets are sent, read, modified or
+  blocked.
+- **No commands:** no `QueueCommand` or automated chat or actions.
+- **No other network or file access:** no HTTP, sockets, bots or webhooks. The only I/O is the
+  local Discord pipe and its own settings file.
+- **No other players' data:** only your own character.
+
+`branding/phoenix_presence_logo.png` is an optional image you can upload to your own Discord
+application as the status icon. It's original artwork, not Phoenix's logo.
+
+### Files in the reviewed version
+
+`SHA256SUMS` lists the SHA-256 of every file in this version (2 files).
+Its own SHA-256 is `57a71d467fc5c39d25c572c59753420ed58e53571809a5180e66c591a5c55cfe`.
+
+Main files:
+
+| File | SHA-256 |
+|---|---|
+| `presence.lua` | `f90230b8042785e25702919fede8a64daba9114821a5b0f166ccfe23e8fe4ebd` |
