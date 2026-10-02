@@ -15,7 +15,7 @@
     Helpers (call inside a window): ui.section, ui.stat, ui.toggle, ui.rightText, ui.labelValue,
     ui.tooltip, ui.textWidth.
 
-    Themes: ui.THEMES lists them (Phoenix, Farplane, Umbrella, Midnight, Classic). ui.setTheme(name)
+    Themes: ui.THEMES lists them (Phoenix, Farplane, Farplane9, Umbrella, Midnight, Classic). ui.setTheme(name)
     switches (call it once at load with the saved choice). ui.themeCombo(label, current) draws a
     picker; ui.themeMenu(current) adds a right-click menu to the current window for addons
     without a settings window.
@@ -97,6 +97,14 @@ local PALETTES = {
         royal = 'd2642a', tint = { 'f08a3c', 0.28 }, hover = 'e8783a', ember = 'ffb347',
         danger = 'e5482f', gold = 'f2c45a', success = '7cc9b6',
     },
+    -- Farplane IX: Farplane's colors in Final Fantasy IX's squared-off, framed menu style
+    -- (square corners and thin borders come from SHAPES below).
+    Farplane9 = {
+        abyss = '141317', surface1 = '1f2024', surface2 = '2b2e34', border = { 'cfdcd8', 0.34 }, subtle = { 'cfdcd8', 0.16 },
+        text = 'fff4e8', secondary = 'eadfd2', peach = 'a8d8f0', muted = '8d8580', faint = '57514f',
+        royal = 'd2642a', tint = { 'f08a3c', 0.28 }, hover = 'e8783a', ember = 'ffb347',
+        danger = 'ff5a3a', gold = 'ffd27a', success = '8fd6a0',
+    },
     Classic = {
         abyss = '0f0f0f', surface1 = '1f1f1f', surface2 = '2a2a2a', border = { 'ffffff', 0.15 }, subtle = { 'ffffff', 0.08 },
         text = 'ffffff', secondary = 'e6e6e6', peach = 'b4c8e6', muted = '8c8c8c', faint = '5c5c5c',
@@ -105,7 +113,20 @@ local PALETTES = {
     },
 };
 
-ui.THEMES = { 'Phoenix', 'Farplane', 'Umbrella', 'Midnight', 'Classic' };
+ui.THEMES = { 'Phoenix', 'Farplane', 'Farplane9', 'Umbrella', 'Midnight', 'Classic' };
+
+-- The pack's default theme. ui.adoptPackTheme switches an addon's saved theme to it once
+-- (marking the settings table with phxThemeRev), so later choices made by the player stick.
+ui.PACK_THEME = 'Farplane9';
+ui.PACK_THEME_REV = 1;
+
+function ui.adoptPackTheme(tbl, key)
+    if type(tbl) ~= 'table' then return false; end
+    if (tonumber(tbl.phxThemeRev) or 0) >= ui.PACK_THEME_REV then return false; end
+    tbl[key] = ui.PACK_THEME;
+    tbl.phxThemeRev = ui.PACK_THEME_REV;
+    return true;
+end
 ui.theme = 'Phoenix';
 
 function ui.setTheme(name)
@@ -174,17 +195,48 @@ local function styleColors(alpha)
     };
 end
 
-local styleVars = {
-    { ImGuiStyleVar_WindowRounding, 8.0 },
-    { ImGuiStyleVar_ChildRounding,  6.0 },
-    { ImGuiStyleVar_FrameRounding,  4.0 },
-    { ImGuiStyleVar_PopupRounding,  6.0 },
-    { ImGuiStyleVar_GrabRounding,   4.0 },
-    { ImGuiStyleVar_TabRounding,    4.0 },
-    { ImGuiStyleVar_WindowPadding,  { 12, 10 } },
-    { ImGuiStyleVar_ItemSpacing,    { 8, 5 } },
-    { ImGuiStyleVar_CellPadding,    { 4, 3 } },
+-- Shape of each theme. Most are rounded; Farplane9 is squared off with thin frame borders,
+-- like Final Fantasy IX's menus.
+local SHAPES = {
+    rounded = {
+        { ImGuiStyleVar_WindowRounding, 8.0 },
+        { ImGuiStyleVar_ChildRounding,  6.0 },
+        { ImGuiStyleVar_FrameRounding,  4.0 },
+        { ImGuiStyleVar_PopupRounding,  6.0 },
+        { ImGuiStyleVar_GrabRounding,   4.0 },
+        { ImGuiStyleVar_TabRounding,    4.0 },
+        { ImGuiStyleVar_WindowPadding,  { 12, 10 } },
+        { ImGuiStyleVar_ItemSpacing,    { 8, 5 } },
+        { ImGuiStyleVar_CellPadding,    { 4, 3 } },
+    },
+    squared = {
+        { ImGuiStyleVar_WindowRounding,   0.0 },
+        { ImGuiStyleVar_ChildRounding,    0.0 },
+        { ImGuiStyleVar_FrameRounding,    0.0 },
+        { ImGuiStyleVar_PopupRounding,    0.0 },
+        { ImGuiStyleVar_GrabRounding,     0.0 },
+        { ImGuiStyleVar_TabRounding,      0.0 },
+        { ImGuiStyleVar_ScrollbarRounding, 0.0 },
+        { ImGuiStyleVar_WindowBorderSize, 1.0 },
+        { ImGuiStyleVar_FrameBorderSize,  1.0 },
+        { ImGuiStyleVar_PopupBorderSize,  1.0 },
+        { ImGuiStyleVar_WindowPadding,    { 12, 10 } },
+        { ImGuiStyleVar_ItemSpacing,      { 8, 5 } },
+        { ImGuiStyleVar_CellPadding,      { 4, 3 } },
+    },
 };
+local THEME_SHAPE = { Farplane9 = 'squared' };
+
+-- True while the current theme is squared off (addons drawing their own plates can match it).
+function ui.squared()
+    return THEME_SHAPE[ui.theme] == 'squared';
+end
+
+-- Corner rounding to use for custom drawing in the current theme.
+function ui.rounding(r)
+    if ui.squared() then return 0; end
+    return r;
+end
 
 -- Push the theme. Returns a token for ui.pop. alpha is the window background opacity.
 function ui.push(alpha)
@@ -196,7 +248,7 @@ function ui.push(alpha)
             token.colors = token.colors + 1;
         end
     end
-    for _, entry in ipairs(styleVars) do
+    for _, entry in ipairs(SHAPES[THEME_SHAPE[ui.theme] or 'rounded']) do
         if entry[1] ~= nil then
             imgui.PushStyleVar(entry[1], entry[2]);
             token.vars = token.vars + 1;

@@ -27,7 +27,7 @@ local ui       = require('phxui');
 local NATION_NAMES = { [0] = "San d'Oria", [1] = 'Bastok', [2] = 'Windurst' };
 
 local default_settings = T{
-    theme = 'Phoenix',  -- window theme (phxui); right-click the window or /currencytracker theme <name>
+    theme = 'Farplane9',  -- window theme (phxui); right-click the window or /currencytracker theme <name>
     visible                = true,
     received               = false,
     cp_sandoria            = 0,
@@ -144,6 +144,7 @@ local function print_help()
 end
 
 ashita.events.register('load', 'load_cb', function ()
+    if ui.adoptPackTheme(currencytracker.settings, 'theme') then settings.save(); end
     ui.setTheme(currencytracker.settings.theme);
     print(chat.header(addon.name):append(chat.message(('v%s loaded. Use /currencytracker help for commands.'):format(addon.version))));
 end);
@@ -217,6 +218,7 @@ end);
 settings.register('settings', 'settings_update', function (s)
     if (s ~= nil) then
         currencytracker.settings = s;
+        if ui.adoptPackTheme(currencytracker.settings, 'theme') then settings.save(); end
         ui.setTheme(currencytracker.settings.theme);
     end
     settings.save();

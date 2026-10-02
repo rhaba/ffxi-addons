@@ -31,7 +31,7 @@ local MAGIC_IDS = T{ 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45 };
 local ENTITY_STATUS_ENGAGED = 1;
 
 local default_settings = T{
-    theme = 'Phoenix',  -- window theme (phxui); right-click the window or /skilltracker theme <name>
+    theme = 'Farplane9',  -- window theme (phxui); right-click the window or /skilltracker theme <name>
     visible        = true,
     hide_in_combat = true,
 };
@@ -209,6 +209,7 @@ local function print_help()
 end
 
 ashita.events.register('load', 'load_cb', function ()
+    if ui.adoptPackTheme(skilltracker.settings, 'theme') then settings.save(); end
     ui.setTheme(skilltracker.settings.theme);
     print(chat.header(addon.name):append(chat.message(('v%s loaded. Use /skilltracker help for commands.'):format(addon.version))));
 end);
@@ -275,6 +276,7 @@ end);
 settings.register('settings', 'settings_update', function (s)
     if (s ~= nil) then
         skilltracker.settings = s;
+        if ui.adoptPackTheme(skilltracker.settings, 'theme') then settings.save(); end
         ui.setTheme(skilltracker.settings.theme);
     end
     settings.save();
